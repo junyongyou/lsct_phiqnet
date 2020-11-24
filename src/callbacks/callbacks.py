@@ -40,7 +40,7 @@ def create_callbacks(model_name, result_folder, other_callback=None, checkpoint=
         mcp = ModelCheckpoint(mcp_file, save_best_only=True, save_weights_only=True, monitor='plcc', verbose=1, mode='max')
         callbacks.append(mcp)
 
-    tensorboard_callback = TensorBoard(log_dir=result_folder, histogram_freq=1)
-    callbacks.append(tensorboard_callback)
+    # tensorboard_callback = TensorBoard(log_dir=result_folder, histogram_freq=1)
+    # callbacks.append(tensorboard_callback)
 
     return callbacks

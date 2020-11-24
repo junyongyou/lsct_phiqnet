@@ -79,6 +79,7 @@ def check_args(args):
 
 def identify_best_weights(result_folder, history, best_plcc):
     pos = np.where(history['plcc'] == best_plcc)[0][0]
+
     pos_loss = '{}_{:.4f}'.format(pos + 1, history['loss'][pos])
     all_weights_files = glob.glob(os.path.join(result_folder, '*.h5'))
     for all_weights_file in all_weights_files:
@@ -96,7 +97,7 @@ def remove_non_best_weights(result_folder, best_weights_files):
             os.remove(all_weights_file)
 
 
-def train_main(args):
+def train_main(args, train_vids=None, test_vids=None):
     """
     Main function to train LSCT-PHIQNet
     :param args: arguments for training
@@ -109,8 +110,9 @@ def train_main(args):
 
     model_name = args['model_name']
 
-    # train and test videos will be randomly split based on random seed
-    train_vids, test_vids = gather_all_vids(all_vids_pkl=args['vids_meta'])
+    if train_vids == None or test_vids == None:
+        # train and test videos will be randomly split based on random seed
+        train_vids, test_vids = gather_all_vids(all_vids_pkl=args['vids_meta'])
 
     clip_length = args['clip_length']
     model_name += '_clip_{}'.format(clip_length)
@@ -234,11 +236,14 @@ def train_main(args):
     best_weights_file = identify_best_weights(result_folder, model_history.history, callbacks[3].best)
     remove_non_best_weights(result_folder, [best_weights_file])
 
+    if not best_weights_file:
+        return max_plcc_pretrain
+
     # do fine-tuning
     if args['do_finetune'] and best_weights_file:
         del (callbacks[-1])
         model.load_weights(best_weights_file)
-        finetune_lr = 1e-4
+        finetune_lr = 1e-4/2
         if args['lr_schedule']:
             warmup_lr_finetune = WarmUpCosineDecayScheduler(learning_rate_base=finetune_lr,
                                                             total_steps=total_train_steps,

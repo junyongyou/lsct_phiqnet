@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import LSTM, Dense, TimeDistributed, Masking, BatchNormalization, Dropout, Input, Bidirectional
+from tensorflow.keras.layers import LSTM, Dense, TimeDistributed, Masking, BatchNormalization, Dropout, Input, Bidirectional, ConvLSTM2D
 from tensorflow.keras.models import Model
 
 from lsct.models.cnn_1d import CNN1D
@@ -47,7 +47,6 @@ def create_cnn_lstm_model(clip_length, feature_length=1280, cnn_filters=(32, 64)
 
     for mlp_filter in mlp_filters:
         x = Dense(mlp_filter)(x)
-        x = BatchNormalization()(x)
         if using_dropout:
             x = Dropout(dropout_rate)(x)
 

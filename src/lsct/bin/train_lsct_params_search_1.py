@@ -18,26 +18,26 @@ if __name__ == '__main__':
     args['ugc_chunk_folder_flipped'] = r'.\frame_features_flipped\ugc_chunks'
 
     # args['database'] = ['live', 'konvid', 'ugc']
-    args['database'] = ['ugc']
+    args['database'] = ['konvid']
 
     cnn_filters_range = [
         [16, 32],
-        [32, 64],
-        [32, 64, 128],
-        [32, 64, 128, 256]
+        # [32, 64],
+        # [32, 64, 128],
+        # [32, 64, 128, 256]
     ]
     transformer_params_range = [
         [2, 16, 2, 32],
-        [2, 16, 4, 32],
-        [2, 32, 4, 64],
-        [2, 64, 4, 64],
-        [4, 32, 4, 64],
-        [4, 64, 4, 64],
-        [4, 64, 4, 128],
-        [4, 64, 8, 128],
-        [4, 64, 8, 256],
-        [4, 128, 8, 256],
-        [8, 256, 8, 512]
+        # [2, 16, 4, 32],
+        # [2, 32, 4, 64],
+        # [2, 64, 4, 64],
+        # [4, 32, 4, 64],
+        # [4, 64, 4, 64],
+        # [4, 64, 4, 128],
+        # [4, 64, 8, 128],
+        # [4, 64, 8, 256],
+        # [4, 128, 8, 256],
+        # [8, 256, 8, 512]
     ]
 
     args['dropout_rate'] = 0.1
@@ -49,14 +49,14 @@ if __name__ == '__main__':
     args['epochs'] = 300
 
     args['multi_gpu'] = 0
-    args['gpu'] = 1
+    args['gpu'] = 0
 
     args['validation'] = 'validation'
 
     args['do_finetune'] = True
 
-    result_record_file = os.path.join(args['result_folder'], 'ugc_nochunks.csv')
-    runs = 4
+    result_record_file = os.path.join(args['result_folder'], 'konvid_nochunks.csv')
+    runs = 5
     all_plcc = np.zeros((runs, len(cnn_filters_range), len(transformer_params_range)))
 
     for k in range(runs):
@@ -64,8 +64,6 @@ if __name__ == '__main__':
 
         for i, cnn_filters in enumerate(cnn_filters_range):
             for j, transformer_params in enumerate(transformer_params_range):
-                if i == 0 and j < 5:
-                    break
                 if not os.path.exists(result_record_file):
                     record_file = open(result_record_file, 'w+')
                 else:
@@ -82,7 +80,7 @@ if __name__ == '__main__':
                 record_file.write('Run: {}, CNN: {}, Transformer: {}, plcc: {}\n'.format(k, cnn_filters, transformer_params, plcc))
 
                 all_plcc[k, i, j] = plcc
-                print('Run: {}, CNN: {}, Transformer: {}, plcc: {}\n'.format(k + 1, cnn_filters, transformer_params, plcc))
+                print('Run: {}, CNN: {}, Transformer: {}, plcc: {}\n'.format(k, cnn_filters, transformer_params, plcc))
                 record_file.flush()
                 record_file.close()
         print(np.mean(np.array(all_plcc), axis=0))
