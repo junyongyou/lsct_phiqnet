@@ -5,6 +5,7 @@ import numpy as np
 import subprocess as sp
 import json
 import os
+import tensorflow as tf
 import time
 from tensorflow.keras.applications.resnet50 import ResNet50
 
@@ -171,51 +172,27 @@ class CalculateFrameQualityFeaturesResnet50():
             return features
 
 
-def check_feature_correct():
-    folders = [r'KonVid1k\KoNViD_1k_videos',
-               r'ugc',
-               r'live_vqc\Video']
-
-    num = 0
-    for folder in folders:
-        # npy_folder = os.path.join(r'C:\vq_datasets\frame_features', folder)
-        npy_folder = os.path.join(r'C:\vq_datasets\frame_features_flipped', folder)
-        npy_files = os.listdir(npy_folder)
-        for npy_file in npy_files:
-            n_file = os.path.join(npy_folder, npy_file)
-            old_features = np.load(n_file)
-            # new_features = np.load(
-            #     n_file.replace(r'C:\vq_datasets\frame_features', r'C:\vq_datasets\Resnet50_frame_features'))
-
-            new_features = np.load(
-                n_file.replace(r'C:\vq_datasets\frame_features_flipped', r'C:\vq_datasets\Resnet50_frame_features_flipped'))
-            if old_features.shape[0] != new_features.shape[0] or len(new_features.shape) != 3 or new_features.shape[-1] != 2048:
-                print('{} wrong'.format(npy_file))
-            num += 1
-
-    print(num)
-
-
 if __name__ == '__main__':
-    # ffmpeg_exe = r'C:\lsct_phiqnet\src\ffmpeg\ffmpeg.exe'
-    # ffprobe_exe = r'C:\lsct_phiqnet\src\ffmpeg\ffprobe.exe'
-    #
-    # feature_folder = r'C:\vq_datasets\Resnet50_frame_features'
-    # feature_folder_flipped = r'C:\vq_datasets\Resnet50_frame_features_flipped'
-    #
-    # # Use None that ResNet50 will download ImageNet Pretrained weights or specify the weight path
-    # video_frame_features = CalculateFrameQualityFeaturesResnet50(model_weights=r'C:\Users\junyong\Downloads\resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5',
-    #                                                              ffmpeg_exe=ffmpeg_exe,
-    #                                                              ffprobe_exe=ffprobe_exe)
-    # video_folders = [
-    #     # r'C:\vq_datasets\live_vqc\Video',
-    #     # r'D:\VQ_datasets\ugc_test',
-    #     # r'D:\VQ_datasets\ugc_train',
-    #     r'D:\VQ_datasets\ugc_validation',
-    #     r'D:\VQ_datasets\ugc_tmp',
-    #     # r'C:\vq_datasets\KonVid1k\KoNViD_1k_videos'
-    # ]
-    # video_frame_features.video_features(video_folders, feature_folder, feature_folder_flipped)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    tf.config.experimental.set_visible_devices(gpus[1], 'GPU')
+    tf.config.experimental_run_functions_eagerly(True)
+    ffmpeg_exe = r'C:\lsct_phiqnet\src\ffmpeg\ffmpeg.exe'
+    ffprobe_exe = r'C:\lsct_phiqnet\src\ffmpeg\ffprobe.exe'
 
-    check_feature_correct()
+    feature_folder = r'C:\vq_datasets\Resnet50_frame_features'
+    feature_folder_flipped = r'C:\vq_datasets\Resnet50_frame_features_flipped'
+
+    # Use None that ResNet50 will download ImageNet Pretrained weights or specify the weight path
+    video_frame_features = CalculateFrameQualityFeaturesResnet50(model_weights=r'C:\Users\junyong\Downloads\resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5',
+                                                                 ffmpeg_exe=ffmpeg_exe,
+                                                                 ffprobe_exe=ffprobe_exe)
+    video_folders = [
+        # r'C:\vq_datasets\live_vqc\Video',
+        # r'D:\VQ_datasets\ugc_test',
+        # r'C:\vq_datasets\KonVid1k\KoNViD_1k_videos',
+        r'D:\VQ_datasets\ugc_train',
+        # r'D:\VQ_datasets\ugc_validation',
+
+    ]
+    video_frame_features.video_features(video_folders, feature_folder, feature_folder_flipped)
 

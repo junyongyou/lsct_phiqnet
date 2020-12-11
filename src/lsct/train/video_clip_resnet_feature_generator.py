@@ -8,7 +8,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from lsct.utils.gather_video_ids import gather_all_vids
 
 
-class VideoClipFeatureGenerator(Sequence):
+class VideoClipResnetFeatureGenerator(Sequence):
     def __init__(self, video_mos, vids, batch_size, shuffle=True, clip_length=16, padding='post', ugc_chunk_pickle=None,
                  ugc_chunk_folder=None, ugc_chunk_folder_flipped=None, random_ratio=0., clip_or_frame='clip',
                  training=True, database=('live', 'konvid', 'ugc')):
@@ -57,15 +57,6 @@ class VideoClipFeatureGenerator(Sequence):
         if 'ugc' in video_file.lower():
             return 'ugc_{}'.format(vid), 'ugc'
 
-    def get_vid_oldresnet(self, video_file):
-        vid = os.path.splitext(os.path.basename(video_file))[0]
-        if 'live_vqc' in video_file.lower():
-            return 'live_{}'.format(vid.replace('_resnet-50_res5c', '')), 'live'
-        if 'konvid' in video_file.lower():
-            return 'konvid_{}'.format(vid.replace('_resnet-50_res5c', '')), 'konvid'
-        if 'ugc' in video_file.lower():
-            return 'ugc_{}'.format(vid.replace('_resnet-50_res5c', '')), 'ugc'
-
     def get_feature_scores(self, video_mos, vids):
         """
         Read in all feature files and scores
@@ -87,9 +78,9 @@ class VideoClipFeatureGenerator(Sequence):
                     if vid in vids:
                         self.features_files.append(content[0])
                         self.scores.append(float(content[1]))
-                        # if self.training:
-                        #     self.features_files.append(content[0].replace('frame_features', 'frame_features_flipped'))
-                        #     self.scores.append(float(content[1]))
+                        if self.training:
+                            self.features_files.append(content[0].replace('frame_features', 'frame_features_flipped'))
+                            self.scores.append(float(content[1]))
 
                         if self.ugc_chunk_pickle:
                             if 'ugc' in vid:
@@ -121,7 +112,7 @@ class VideoClipFeatureGenerator(Sequence):
             random_choice = np.random.choice(indices_batch, int(self.random_ratio * self.batch_size))
         for index in indices_batch:
             frame_features = np.load(self.features_files[index])
-            # frame_features = np.squeeze(frame_features, axis=1)
+            frame_features = np.squeeze(frame_features, axis=1)
 
             # Reverse frames
             if self.training and index in random_choice:
@@ -161,7 +152,7 @@ if __name__ == '__main__':
     batch_size = 32
     database = ['live', 'konvid', 'ugc']
     train_vids, test_vids = gather_all_vids(all_vids_pkl=r'..\\examples\meta_data\all_vids.pkl')
-    train_generator = VideoClipFeatureGenerator(video_mos_file,
+    train_generator = VideoClipResnetFeatureGenerator(video_mos_file,
                                                 train_vids,
                                                 batch_size=batch_size,
                                                 clip_length=clip_length,
@@ -171,7 +162,7 @@ if __name__ == '__main__':
                                                 ugc_chunk_folder=ugc_chunk_folder,
                                                 ugc_chunk_folder_flipped=ugc_chunk_folder_flipped,
                                                 database=database)
-    test_generator =  VideoClipFeatureGenerator(video_mos_file,
+    test_generator =  VideoClipResnetFeatureGenerator(video_mos_file,
                                                 test_vids,
                                                 batch_size=32,
                                                 random_ratio=0.,

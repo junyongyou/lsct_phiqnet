@@ -11,7 +11,7 @@ from lsct.utils.gather_video_ids import gather_all_vids
 class VideoClipFeatureGenerator(Sequence):
     def __init__(self, video_mos, vids, batch_size, shuffle=True, clip_length=16, padding='post', ugc_chunk_pickle=None,
                  ugc_chunk_folder=None, ugc_chunk_folder_flipped=None, random_ratio=0., clip_or_frame='clip',
-                 training=True, database=('live', 'konvid', 'ugc')):
+                 flip=True, training=True, database=('live', 'konvid', 'ugc')):
         """
         Clip feature generator
         :param video_mos: meta file contains video path and MOS
@@ -42,6 +42,7 @@ class VideoClipFeatureGenerator(Sequence):
         self.padding = padding
         self.random_ratio = random_ratio
         self.clip_or_frame = clip_or_frame
+        self.flip = flip
         self.training = training
         self.database = database
         self.get_feature_scores(video_mos, vids)
@@ -57,7 +58,7 @@ class VideoClipFeatureGenerator(Sequence):
         if 'ugc' in video_file.lower():
             return 'ugc_{}'.format(vid), 'ugc'
 
-    def get_vid_oldresnet(self, video_file):
+    def get_vid_vsfa(self, video_file):
         vid = os.path.splitext(os.path.basename(video_file))[0]
         if 'live_vqc' in video_file.lower():
             return 'live_{}'.format(vid.replace('_resnet-50_res5c', '')), 'live'
@@ -80,16 +81,17 @@ class VideoClipFeatureGenerator(Sequence):
             lines = f.readlines()
             for line in lines:
                 content = line.split(',')
-                vid, dataset = self.get_vid(content[0])
+                # vid, dataset = self.get_vid(content[0])
+                vid, dataset = self.get_vid_vsfa(content[0])
 
                 flag = True if dataset in self.database else False
                 if flag:
                     if vid in vids:
                         self.features_files.append(content[0])
                         self.scores.append(float(content[1]))
-                        # if self.training:
-                        #     self.features_files.append(content[0].replace('frame_features', 'frame_features_flipped'))
-                        #     self.scores.append(float(content[1]))
+                        if self.flip:
+                            self.features_files.append(content[0].replace('VSFA', 'VSFA_flipped'))
+                            self.scores.append(float(content[1]))
 
                         if self.ugc_chunk_pickle:
                             if 'ugc' in vid:
@@ -121,14 +123,13 @@ class VideoClipFeatureGenerator(Sequence):
             random_choice = np.random.choice(indices_batch, int(self.random_ratio * self.batch_size))
         for index in indices_batch:
             frame_features = np.load(self.features_files[index])
-            # frame_features = np.squeeze(frame_features, axis=1)
 
             # Reverse frames
             if self.training and index in random_choice:
-                frame_features = frame_features[::-1, :, :]
+                frame_features = frame_features[::-1, :]
 
-            frame_features = np.reshape(frame_features,
-                                        (frame_features.shape[0], frame_features.shape[1] * frame_features.shape[2]))
+            # frame_features = np.reshape(frame_features,
+            #                             (frame_features.shape[0], frame_features.shape[1] * frame_features.shape[2]))
 
             frame_features_data.append(frame_features)
             y_scores.append(self.scores[index])

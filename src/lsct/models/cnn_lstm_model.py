@@ -1,12 +1,14 @@
-from tensorflow.keras.layers import LSTM, Dense, TimeDistributed, Masking, BatchNormalization, Dropout, Input, Bidirectional, ConvLSTM2D
+from tensorflow.keras.layers import LSTM, Dense, TimeDistributed, Masking, BatchNormalization, Dropout, Input, \
+    Bidirectional, ConvLSTM2D, Attention
 from tensorflow.keras.models import Model
 
 from lsct.models.cnn_1d import CNN1D
+from cnn_lstm.attention_with_context import Attention
 
 
-def create_cnn_lstm_model(clip_length, feature_length=1280, cnn_filters=(32, 64), pooling_sizes=(4, 4),
+def create_cnn_lstm_model(clip_length, feature_length=4096, cnn_filters=(32, 64), pooling_sizes=(4, 4),
                           lstm_filters=(32, 64), mlp_filters=(64, 32, 8), using_dropout=True, using_bidirectional=False,
-                          using_cnn=True, dropout_rate=0.1):
+                          using_cnn=True, using_attention=False, dropout_rate=0.1):
     """
     Create CNN-LSTM model for VQA
     :param clip_length: clip length
@@ -40,10 +42,19 @@ def create_cnn_lstm_model(clip_length, feature_length=1280, cnn_filters=(32, 64)
             else:
                 x = LSTM(lstm_filter, return_sequences=True)(x)
         else:
-            if using_bidirectional:
-                x = Bidirectional(LSTM(lstm_filter))(x)
+            if using_attention:
+                if using_bidirectional:
+                    x = Bidirectional(LSTM(lstm_filter, return_sequences=True))(x)
+                else:
+                    x = LSTM(lstm_filter, return_sequences=True)(x)
             else:
-                x = LSTM(lstm_filter)(x)
+                if using_bidirectional:
+                    x = Bidirectional(LSTM(lstm_filter))(x)
+                else:
+                    x = LSTM(lstm_filter)(x)
+
+    if using_attention:
+        x = Attention()(x)
 
     for mlp_filter in mlp_filters:
         x = Dense(mlp_filter)(x)

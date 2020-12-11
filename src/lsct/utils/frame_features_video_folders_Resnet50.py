@@ -1,19 +1,19 @@
 """
-This class is to calculate ResNet50 (ImageNet pretraied weights) features on video frames in a list of video folders, FFMPEG is required
+This class is to calculate PHIQNet features on video frames in a list of video folders, FFMPEG is required
 """
 import numpy as np
 import subprocess as sp
 import json
 import os
-import time
-from tensorflow.keras.applications.resnet50 import ResNet50
+import tensorflow as tf
+from phiqnet.models.model_analysis import phiq_subnet
 
 
-class CalculateFrameQualityFeaturesResnet50():
-    def __init__(self, model_weights=None, ffprobe_exe=None, ffmpeg_exe=None, process_frame_interval=0):
+class CalculateFrameQualityFeatures():
+    def __init__(self, model_weights, ffprobe_exe=None, ffmpeg_exe=None, process_frame_interval=0):
         """
-        Frame Resnet50 feature computer
-        :param model_weights: Resnet50 ImageNet weights file
+        Frame PHIQNet feature computer
+        :param model_weights: PHIQNet model_weights file
         :param ffprobe_exe: FFProbe exe file
         :param ffmpeg_exe: FFMPEG exe file
         :param process_frame_interval: parameter of frame processing interval, 0 means all frames will be used
@@ -21,14 +21,12 @@ class CalculateFrameQualityFeaturesResnet50():
         self.ffmpeg = ffmpeg_exe
         self.ffprobe = ffprobe_exe
         self.process_frame_interval = process_frame_interval
-        # self.mos_scales = np.array([1, 2, 3, 4, 5])
         self.get_feature_model(model_weights)
 
     def get_feature_model(self, model_weights):
-        if model_weights:
-            self.feature_model = ResNet50(include_top=False, pooling='avg', weights=model_weights)
-        else:
-            self.feature_model = ResNet50(include_top=False, pooling='avg')
+        self.feature_model = phiq_subnet(n_quality_levels=5, return_backbone_maps=False, return_feature_maps=False,
+                                         return_features=True)
+        self.feature_model.load_weights(model_weights, by_name=True)
 
     def get_video_meta(self, video_file):
         """Internal method to get video meta
@@ -79,7 +77,7 @@ class CalculateFrameQualityFeaturesResnet50():
             return None
         return [video_exits, duration, frame_count, height, width, fps, bitrate]
 
-    def video_features(self, video_folders, feature_folder, feature_folder_flipped):
+    def video_features(self, video_folders, feature_folder):
         """
         :param video_folders: a list of folders of all video files
         :param feature_folder: target folder to store the features files in NPY format
@@ -89,35 +87,24 @@ class CalculateFrameQualityFeaturesResnet50():
             video_files = os.listdir(video_folder)
             for video_file in video_files:
                 try:
-                    if video_file.endswith(('.mkv', '.mp4')): # Only mkv and mp4 contained in KonViD-1k, LIVE-VQC and YouTube-UGC databases
-                        t_start = time.time()
+                    if video_file.endswith(('.mkv', '.mp4')): # Only mkv and mps contained in KonViD-1k, LIVE-VQC and YouTube-UGC databases
                         video_path = os.path.join(video_folder, video_file)
-                        video_file_name = os.path.splitext(os.path.basename(video_file))
-                        video_name = video_file_name[0]
-                        video_ext = video_file_name[1]
+                        video_name = os.path.splitext(os.path.basename(video_file))[0]
 
                         # Path to store the PHIQNet features of a frame and a flipped frame must be defined
-                        if 'C:' in video_path:
-                            npy_file_features = video_path.replace(r'C:\vq_datasets', feature_folder).replace(video_ext, '.npy')
-                            npy_file_features_flipped = video_path.replace(r'C:\vq_datasets', feature_folder_flipped).replace(video_ext, '.npy')
-                        else:
-                            npy_file_features = video_path.replace(r'D:\VQ_datasets', feature_folder).replace(video_ext,
-                                                                                                              '.npy')
-                            npy_file_features_flipped = video_path.replace(r'D:\VQ_datasets', feature_folder_flipped).replace(
-                                video_ext, '.npy')
+                        npy_file_features = r''
+                        npy_file_features_flipped = r''
 
-                        if not os.path.exists(npy_file_features) or not os.path.exists(npy_file_features_flipped):
-                            if not os.path.exists(os.path.dirname(npy_file_features)):
-                                os.makedirs(os.path.dirname(npy_file_features))
-                            if not os.path.exists(os.path.dirname(npy_file_features_flipped)):
-                                os.makedirs(os.path.dirname(npy_file_features_flipped))
-                            frame_features, features_flipped = self.__ffmpeg_frames_features__(video_path, flip=True)
-                            np.save(npy_file_features, np.asarray(frame_features, dtype=np.float16))
-                            np.save(npy_file_features_flipped, np.asarray(features_flipped, dtype=np.float16))
-
-                        print('{} done, time: {}'.format(video_file, time.time() - t_start))
-                except Exception as e:
-                    print('{} excep: {}'.format(video_file, e))
+                        if not os.path.exists(os.path.dirname(npy_file_features)):
+                            os.makedirs(os.path.dirname(npy_file_features))
+                        if not os.path.exists(os.path.dirname(npy_file_features_flipped)):
+                            os.makedirs(os.path.dirname(npy_file_features_flipped))
+                        frame_features, features_flipped = self.__ffmpeg_frames_features__(
+                            os.path.join(video_folder, video_file), flip=True)
+                        np.save(npy_file_features, np.asarray(frame_features, dtype=np.float16))
+                        np.save(npy_file_features_flipped, np.asarray(features_flipped, dtype=np.float16))
+                except Exception:
+                    print('{} excep'.format(video_file))
 
     def __cal_features__(self, image):
         image /= 127.5
@@ -171,51 +158,21 @@ class CalculateFrameQualityFeaturesResnet50():
             return features
 
 
-def check_feature_correct():
-    folders = [r'KonVid1k\KoNViD_1k_videos',
-               r'ugc',
-               r'live_vqc\Video']
-
-    num = 0
-    for folder in folders:
-        # npy_folder = os.path.join(r'C:\vq_datasets\frame_features', folder)
-        npy_folder = os.path.join(r'C:\vq_datasets\frame_features_flipped', folder)
-        npy_files = os.listdir(npy_folder)
-        for npy_file in npy_files:
-            n_file = os.path.join(npy_folder, npy_file)
-            old_features = np.load(n_file)
-            # new_features = np.load(
-            #     n_file.replace(r'C:\vq_datasets\frame_features', r'C:\vq_datasets\Resnet50_frame_features'))
-
-            new_features = np.load(
-                n_file.replace(r'C:\vq_datasets\frame_features_flipped', r'C:\vq_datasets\Resnet50_frame_features_flipped'))
-            if old_features.shape[0] != new_features.shape[0] or len(new_features.shape) != 3 or new_features.shape[-1] != 2048:
-                print('{} wrong'.format(npy_file))
-            num += 1
-
-    print(num)
-
-
 if __name__ == '__main__':
-    # ffmpeg_exe = r'C:\lsct_phiqnet\src\ffmpeg\ffmpeg.exe'
-    # ffprobe_exe = r'C:\lsct_phiqnet\src\ffmpeg\ffprobe.exe'
-    #
-    # feature_folder = r'C:\vq_datasets\Resnet50_frame_features'
-    # feature_folder_flipped = r'C:\vq_datasets\Resnet50_frame_features_flipped'
-    #
-    # # Use None that ResNet50 will download ImageNet Pretrained weights or specify the weight path
-    # video_frame_features = CalculateFrameQualityFeaturesResnet50(model_weights=r'C:\Users\junyong\Downloads\resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5',
-    #                                                              ffmpeg_exe=ffmpeg_exe,
-    #                                                              ffprobe_exe=ffprobe_exe)
-    # video_folders = [
-    #     # r'C:\vq_datasets\live_vqc\Video',
-    #     # r'D:\VQ_datasets\ugc_test',
-    #     # r'D:\VQ_datasets\ugc_train',
-    #     r'D:\VQ_datasets\ugc_validation',
-    #     r'D:\VQ_datasets\ugc_tmp',
-    #     # r'C:\vq_datasets\KonVid1k\KoNViD_1k_videos'
-    # ]
-    # video_frame_features.video_features(video_folders, feature_folder, feature_folder_flipped)
+    ffmpeg_exe = r'...\\ffmpeg\ffmpeg.exe'
+    ffprobe_exe = r'...\\ffmpeg\ffprobe.exe'
+    model_weights_file = r'..\\model_weights\PHIQNet.h5'
 
-    check_feature_correct()
+    feature_folder = r'...\\model_weights\frame_features'
+    video_frame_features = CalculateFrameQualityFeatures(model_weights=model_weights_file,
+                                                         ffmpeg_exe=ffmpeg_exe,
+                                                         ffprobe_exe=ffprobe_exe)
+    video_folders = [
+        r'.\live_vqc_video',
+        r'.\ugc_test',
+        r'.\ugc_train',
+        r'.\ugc_validation',
+        r'.\KoNViD_1k_videos'
+    ]
+    video_frame_features.video_features(video_folders, feature_folder)
 
