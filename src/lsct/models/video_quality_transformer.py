@@ -154,7 +154,7 @@ class VideoQualityTransformer(Model):
         x = tf.concat([quality_emb, x], axis=1)
 
         # truncate the positional embedding for shorter videos
-        x = x + self.pos_emb[:, frame_length + 1, :]
+        x = x + self.pos_emb[:, : frame_length + 1, :]
 
         x = self.dropout(x, training=training)
 
