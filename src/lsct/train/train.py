@@ -107,6 +107,11 @@ def train_main(args, train_vids=None, test_vids=None):
     result_folder = args['result_folder']
     if not os.path.exists(result_folder):
         os.makedirs(result_folder)
+    result_file = os.path.join(result_folder, 'result.csv')
+    if os.path.exists(result_file):
+        rf = open(result_file, 'a')
+    else:
+        rf = open(result_file, 'w+')
 
     model_name = args['model_name']
 
@@ -125,7 +130,8 @@ def train_main(args, train_vids=None, test_vids=None):
     cnn_filters = args['cnn_filters']
     pooling_sizes = args['pooling_sizes']
 
-    feature_length = 1280
+    # feature_length = 1280
+    feature_length = 512
 
     if args['multi_gpu'] == 0:
         gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -151,6 +157,7 @@ def train_main(args, train_vids=None, test_vids=None):
     loss = 'mse'
     metrics = 'mae'
     model.compile(loss=loss, optimizer=optimizer, metrics=[metrics])
+    model.run_eagerly = True
 
     if args['validation'] == 'validation':
         train_generator = VideoClipFeatureGenerator(args['meta_file'],
@@ -231,6 +238,7 @@ def train_main(args, train_vids=None, test_vids=None):
 
     max_plcc_pretrain = np.max(model_history.history['plcc'])
     info = 'Pretrain: epochs: {}, MAX PLCC: {}\n'.format(len(model_history.history['plcc']), max_plcc_pretrain)
+    rf.write(info)
     print(info)
 
     best_weights_file = identify_best_weights(result_folder, model_history.history, callbacks[3].best)
@@ -269,7 +277,10 @@ def train_main(args, train_vids=None, test_vids=None):
         max_plcc_finetune = np.max(finetune_model_history.history['plcc'])
         info = 'Finetune: epochs: {}, MAX PLCC: {}\n'.format(len(finetune_model_history.history['plcc']),
                                                              max_plcc_finetune)
+        rf.write(info)
         print(info)
+    rf.flush()
+    rf.close()
 
     if args['do_finetune']:
         return max([max_plcc_pretrain, max_plcc_finetune])

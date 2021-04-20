@@ -87,9 +87,9 @@ class VideoClipFeatureGenerator(Sequence):
                     if vid in vids:
                         self.features_files.append(content[0])
                         self.scores.append(float(content[1]))
-                        # if self.training:
-                        #     self.features_files.append(content[0].replace('frame_features', 'frame_features_flipped'))
-                        #     self.scores.append(float(content[1]))
+                        if self.training:
+                            self.features_files.append(content[0].replace('frame_features', 'frame_features_flipped'))
+                            self.scores.append(float(content[1]))
 
                         if self.ugc_chunk_pickle:
                             if 'ugc' in vid:
