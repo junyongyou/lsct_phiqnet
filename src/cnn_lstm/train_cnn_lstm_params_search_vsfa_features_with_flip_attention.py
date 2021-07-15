@@ -308,7 +308,7 @@ if __name__ == '__main__':
         # [16, 32],
         [32, 64],
         # [32, 64, 128],
-        [32, 64, 128, 256]
+        # [32, 64, 128, 256]
     ]
     lstm_params_range = [
         # [16, 16],
@@ -323,7 +323,7 @@ if __name__ == '__main__':
         [64, 32, 8]
     ]
 
-    args['batch_size'] = 64
+    args['batch_size'] = 48
 
     args['lr_base'] = 1e-3
     args['epochs'] = 300
@@ -341,7 +341,7 @@ if __name__ == '__main__':
 
     for m in range(runs):
         # train_vids, test_vids = gather_all_vids(all_vids_pkl=args['vids_meta'])
-        train_vids, test_vids = load(open(r'C:\vq_datasets\random_splits\split_{}.pkl'.format(m + 2), 'rb'))
+        train_vids, test_vids = load(open(r'C:\vq_datasets\random_splits\split_{}.pkl'.format(m + 3), 'rb'))
 
         for i, cnn_filters in enumerate(cnn_filters_range):
             for j, lstm_params in enumerate(lstm_params_range):
@@ -364,7 +364,7 @@ if __name__ == '__main__':
 
                     record_file.write(
                         'Run: {}, CNN: {}, LSTM: {}, MLP: {}, plcc: {}, rmse: {}, srocc: {}\n'.format(
-                            m + 2, cnn_filters, lstm_params, mlp_params, plcc, rmse, srocc))
+                            m + 3, cnn_filters, lstm_params, mlp_params, plcc, rmse, srocc))
 
                     all_plcc[m, i, j, k] = plcc
                     record_file.flush()

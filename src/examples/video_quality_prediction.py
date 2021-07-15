@@ -1,7 +1,7 @@
 import numpy as np
 
 from lsct.utils.frame_features_video_folders import CalculateFrameQualityFeatures
-from lsct.bin.train_lsct_all_databases import create_model
+from lsct.models.lsct_phiqnet_model import create_model
 
 FFMPEG = r'..\\ffmpeg\ffmpeg.exe'
 FFPROBE = r'..\\ffmpeg\ffprobe.exe'

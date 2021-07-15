@@ -25,7 +25,7 @@ class CalculateFrameQualityFeatures():
         self.get_feature_model(model_weights)
 
     def get_feature_model(self, model_weights):
-        self.feature_model = phiq_subnet(n_quality_levels=5, return_backbone_maps=False, return_feature_maps=False,
+        self.feature_model = phiq_subnet(n_quality_levels=5, return_backbone_maps=False, return_feature_maps=True,
                                          return_features=True)
         self.feature_model.load_weights(model_weights, by_name=True)
 
