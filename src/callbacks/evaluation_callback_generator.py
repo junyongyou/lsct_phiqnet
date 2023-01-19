@@ -28,8 +28,8 @@ class ModelEvaluationIQGenerator(Callback):
         predictions = []
         mos_scores = []
 
-        for i in range(iq_generator.__len__()):
-            images, scores_batch = iq_generator.__getitem__(i)
+        for j in range(iq_generator.__len__()):
+            images, scores_batch = iq_generator.__getitem__(j)
             # mos_scores.extend(scores)
             if self.imagenet_pretrain:
                 # ImageNnet normalization
